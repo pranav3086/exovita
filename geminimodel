@@ -1,0 +1,1006 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { 
+  Globe, 
+  Database, 
+  Layers, 
+  Activity, 
+  Code, 
+  Cpu,
+  Rocket, 
+  CheckCircle, 
+  XCircle, 
+  Menu, 
+  X,
+  Brain,
+  BarChart3,
+  Monitor,
+  Settings,
+  Thermometer,
+  Wind,
+  Droplets,
+  ArrowLeft,
+  RefreshCw,
+  Info,
+  Clock,
+  ExternalLink,
+  Maximize2,
+  Minimize2,
+  ChevronDown
+} from 'lucide-react';
+
+// --- CSS Styles for Animations ---
+const styleTag = `
+  @keyframes planet-rotate {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 200% 0%; }
+  }
+  @keyframes cloud-rotate {
+    0% { background-position: 0% 0%; }
+    100% { background-position: -200% 0%; }
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.2); }
+  }
+  @keyframes lava-pulse {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.3); }
+  }
+  .animate-planet-rotate {
+    animation: planet-rotate 120s linear infinite;
+  }
+  .animate-cloud-rotate {
+    animation: cloud-rotate 180s linear infinite;
+  }
+  .animate-twinkle {
+    animation: twinkle 3s ease-in-out infinite;
+  }
+  .animate-lava {
+    animation: lava-pulse 4s ease-in-out infinite;
+  }
+  .glass-panel {
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+`;
+
+// --- Components ---
+
+const StarField = ({ density = 'normal' }) => {
+  // Generate random stars for a more dense, immersive field
+  const stars = useMemo(() => {
+    const count = density === 'high' ? 250 : 50;
+    return Array.from({ length: count }).map((_, i) => ({
+      id: i,
+      top: `${Math.random() * 100}%`,
+      left: `${Math.random() * 100}%`,
+      size: Math.random() * 2 + 1,
+      delay: Math.random() * 5,
+      opacity: Math.random() * 0.7 + 0.3
+    }));
+  }, [density]);
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+      <style>{styleTag}</style>
+      {/* Background Gradient for depth */}
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-[#0a0f1e] to-slate-950 opacity-90"></div>
+      
+      {/* Generated Stars */}
+      {stars.map((star) => (
+        <div
+          key={star.id}
+          className="absolute bg-white rounded-full animate-twinkle"
+          style={{
+            top: star.top,
+            left: star.left,
+            width: `${star.size}px`,
+            height: `${star.size}px`,
+            animationDelay: `${star.delay}s`,
+            opacity: star.opacity
+          }}
+        ></div>
+      ))}
+      
+      {/* Nebulas / Glows */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[100px] mix-blend-screen animate-pulse duration-[10s]"></div>
+      <div className="absolute bottom-1/3 right-1/4 w-[500px] h-[500px] bg-teal-500/5 rounded-full blur-[120px] mix-blend-screen"></div>
+    </div>
+  );
+};
+
+const SectionHeading = ({ children, subtitle, centered = true }) => (
+  <div className={`mb-12 ${centered ? 'text-center' : 'text-left'} z-10 relative`}>
+    <h2 className="text-3xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-teal-200 to-teal-500 mb-4">
+      {children}
+    </h2>
+    {subtitle && <p className="text-slate-400 text-lg max-w-2xl mx-auto">{subtitle}</p>}
+  </div>
+);
+
+const Card = ({ icon: Icon, title, description, delay = 0 }) => (
+  <div 
+    className="bg-slate-900/50 border border-slate-700/50 p-6 rounded-2xl hover:border-teal-500/50 hover:bg-slate-800/50 transition-all duration-300 backdrop-blur-sm group"
+  >
+    <div className="mb-4 p-3 bg-teal-900/30 rounded-lg w-fit group-hover:bg-teal-500/20 transition-colors">
+      <Icon className="w-8 h-8 text-teal-400" />
+    </div>
+    <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
+    <p className="text-slate-400 leading-relaxed">{description}</p>
+  </div>
+);
+
+const StatCard = ({ value, label, sublabel }) => (
+  <div className="text-center p-6 border-r border-slate-800 last:border-0">
+    <div className="text-4xl md:text-5xl font-bold text-white mb-1">{value}</div>
+    <div className="text-teal-400 font-medium text-lg uppercase tracking-wider">{label}</div>
+    {sublabel && <div className="text-slate-500 text-sm mt-1">{sublabel}</div>}
+  </div>
+);
+
+const StepCard = ({ number, title, description, icon: Icon }) => (
+  <div className="relative flex flex-col items-center text-center p-6 z-10">
+    <div className="w-16 h-16 rounded-full bg-slate-800 border-2 border-teal-500/30 flex items-center justify-center mb-6 relative group hover:border-teal-400 transition-colors">
+      <span className="absolute -top-2 -right-2 bg-teal-500 text-slate-900 text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
+        {number}
+      </span>
+      <Icon className="w-8 h-8 text-teal-300" />
+    </div>
+    <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
+    <p className="text-slate-400 text-sm">{description}</p>
+  </div>
+);
+
+const ComparisonRow = ({ feature, exo, trad }) => (
+  <div className="grid grid-cols-3 gap-4 py-4 border-b border-slate-800 items-center">
+    <div className="text-slate-300 font-medium">{feature}</div>
+    <div className="text-center flex justify-center">
+      {exo ? <CheckCircle className="text-teal-400 w-6 h-6" /> : <XCircle className="text-red-400 w-6 h-6" />}
+    </div>
+    <div className="text-center flex justify-center opacity-50">
+      {trad ? <CheckCircle className="text-teal-400 w-6 h-6" /> : <XCircle className="text-red-400 w-6 h-6" />}
+    </div>
+  </div>
+);
+
+// --- Simulation Dashboard Component ---
+
+const SimulationDashboard = ({ onExit }) => {
+  // Params loosely based on Earth Similarity Index (ESI) factors
+  const [params, setParams] = useState({
+    pressure: 1.0, // atm
+    temperature: 15, // Celsius
+    gravity: 1.0, // Earth gravities
+    water: 70, // % surface coverage
+    starDistance: 1.0, // AU
+    magneticField: 50 // microtesla
+  });
+  
+  const [timeframe, setTimeframe] = useState(10); // Years elapsed
+  const [planetName, setPlanetName] = useState("Kepler-186f (Simulated)");
+  const [planetType, setPlanetType] = useState("Super-Earth");
+  const [loading, setLoading] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false); // Dropdown state
+
+  // Real data candidates from NASA Exoplanet Archive
+  // styles: rock, gas, ice, lava, ocean, toxic
+  const candidates = [
+    { name: "Proxima Centauri b", type: "Super-Earth", temp: -39, grav: 1.1, dist: 0.05, press: 2.5, style: "rock" },
+    { name: "TRAPPIST-1e", type: "Terrestrial", temp: -15, grav: 0.93, dist: 0.029, press: 0.8, style: "ocean" },
+    { name: "Kepler-452b", type: "Super-Earth", temp: -8, grav: 1.5, dist: 1.04, press: 3.2, style: "terran" },
+    { name: "Kepler-1649c", type: "Terrestrial", temp: -39, grav: 1.06, dist: 0.08, press: 1.2, style: "ice" },
+    { name: "TOI-700 d", type: "Terrestrial", temp: -3, grav: 1.1, dist: 0.16, press: 1.0, style: "terran" },
+    { name: "K2-18b", type: "Mini-Neptune", temp: 12, grav: 2.4, dist: 0.14, press: 8.0, style: "gas" },
+    { name: "LHS 1140 b", type: "Super-Earth", temp: -40, grav: 2.2, dist: 0.09, press: 1.5, style: "ocean" },
+    { name: "55 Cancri e", type: "Super-Earth", temp: 1000, grav: 2.0, dist: 0.015, press: 5.0, style: "lava" },
+    { name: "Kepler-22b", type: "Super-Earth", temp: 22, grav: 2.4, dist: 0.85, press: 3.0, style: "ocean" }
+  ];
+
+  const selectPlanet = (candidate) => {
+    setLoading(true);
+    setIsDropdownOpen(false); // Close dropdown
+    setTimeframe(10);
+    
+    setTimeout(() => {
+      // Add small variance to selection to simulate model uncertainty
+      let newTemp = candidate.temp;
+      let newWater = 50; // default
+
+      // Heuristic for initial water based on style
+      if (candidate.style === 'ocean') newWater = 95;
+      if (candidate.style === 'terran') newWater = 70;
+      if (candidate.style === 'rock' || candidate.style === 'lava') newWater = 5;
+      if (candidate.style === 'ice') newWater = 80; // Frozen water
+      if (candidate.style === 'gas') newWater = 0;
+
+      setParams({
+        pressure: parseFloat((candidate.press + (Math.random() * 0.1 - 0.05)).toFixed(2)),
+        temperature: Math.floor(newTemp + (Math.random() * 5 - 2.5)),
+        gravity: parseFloat((candidate.grav + (Math.random() * 0.1 - 0.05)).toFixed(2)),
+        water: newWater, 
+        starDistance: candidate.dist,
+        magneticField: Math.floor(Math.random() * 100)
+      });
+      setPlanetName(candidate.name);
+      setPlanetType(candidate.type);
+      setLoading(false);
+    }, 600);
+  };
+
+  const generateRandomPlanet = () => {
+    const randomCandidate = candidates[Math.floor(Math.random() * candidates.length)];
+    selectPlanet(randomCandidate);
+  };
+
+  // Calculate habitability score (Simplified ESI logic)
+  const stats = useMemo(() => {
+    // Ideal: 1 atm, 15C, 1g, 70% water
+    const pScore = Math.max(0, 100 - Math.abs(params.pressure - 1) * 30);
+    const tScore = Math.max(0, 100 - Math.abs(params.temperature - 15) * 1.5);
+    const gScore = Math.max(0, 100 - Math.abs(params.gravity - 1) * 40);
+    const wScore = Math.max(0, 100 - Math.abs(params.water - 70) * 1);
+    
+    // Weighted score
+    const total = (pScore * 1.5 + tScore * 2 + gScore + wScore) / 5.5;
+    
+    let status = "Habitable";
+    let color = "text-teal-400";
+    
+    if (total < 40) { status = "Hostile"; color = "text-red-500"; }
+    else if (total < 70) { status = "Marginal"; color = "text-yellow-500"; }
+    
+    // Override for specific conditions
+    if (params.pressure > 6) { status = "Gas Giant"; color = "text-purple-400"; }
+    else if (params.temperature > 400) { status = "Molten"; color = "text-orange-500"; }
+    else if (params.temperature < -50) { status = "Frozen"; color = "text-blue-300"; }
+
+    return { score: Math.round(total), status, color };
+  }, [params]);
+
+  // Visual Evolution Logic - Creates highly distinct looks based on parameters
+  const visuals = useMemo(() => {
+    const timeProgress = Math.min(1, (timeframe - 10) / 5000); // 0 to 1 over 5000 years
+    
+    // Determine Archetype based on current params
+    let archetype = 'terran';
+    if (params.pressure > 6) archetype = 'gaseous';
+    else if (params.temperature > 300) archetype = 'volcanic';
+    else if (params.temperature < -20) archetype = 'frozen';
+    else if (params.water < 20) archetype = 'arid';
+    else if (params.pressure > 3 && params.temperature > 50) archetype = 'toxic';
+    else archetype = 'terran'; // Default to Terran/Oceanic if mild
+
+    let baseGradient = '';
+    let textureType = ''; // Used for noise/pattern selection
+    let waterOpacity = 0;
+    let greeneryOpacity = 0;
+    let cloudOpacity = 0;
+    let atmosphereColor = '';
+    let animationClass = 'animate-planet-rotate';
+
+    switch (archetype) {
+      case 'volcanic':
+        // Black crust with glowing orange/red fissures
+        baseGradient = "from-red-900 via-orange-900 to-black";
+        textureType = 'molten';
+        atmosphereColor = 'rgba(255, 69, 0, 0.2)';
+        cloudOpacity = 0.8; // Ash clouds
+        waterOpacity = 0;
+        animationClass = 'animate-planet-rotate animate-lava';
+        break;
+
+      case 'frozen':
+        // White/Light Blue ice sheets
+        baseGradient = "from-slate-50 via-blue-100 to-slate-300";
+        textureType = 'icy';
+        atmosphereColor = 'rgba(200, 230, 255, 0.4)';
+        cloudOpacity = 0.3; // Thin clouds
+        waterOpacity = 0.2; // Subsurface or melted patches
+        break;
+
+      case 'arid':
+        // Mars-like or Desert: Tan, Red, Brown
+        baseGradient = "from-amber-700 via-orange-800 to-stone-900";
+        textureType = 'rocky';
+        atmosphereColor = 'rgba(217, 119, 6, 0.2)'; // Dusty orange
+        cloudOpacity = 0.1;
+        waterOpacity = params.water > 0 ? 0.1 : 0; // Tiny oases?
+        break;
+
+      case 'gaseous':
+        // Jupiter/Neptune-like bands
+        baseGradient = "from-indigo-900 via-purple-800 to-blue-900";
+        textureType = 'gaseous';
+        atmosphereColor = 'rgba(147, 51, 234, 0.3)';
+        cloudOpacity = 0.9; // Thick atmosphere
+        waterOpacity = 0;
+        break;
+
+      case 'toxic':
+        // Venus-like: Yellow/Green thick haze
+        baseGradient = "from-yellow-700 via-lime-900 to-stone-800";
+        textureType = 'gaseous';
+        atmosphereColor = 'rgba(163, 230, 53, 0.3)';
+        cloudOpacity = 1.0;
+        waterOpacity = 0;
+        break;
+
+      case 'terran':
+      default:
+        // Earth-like: Blue oceans, land
+        baseGradient = "from-stone-700 via-stone-600 to-stone-800"; // Land base
+        textureType = 'terran';
+        atmosphereColor = 'rgba(56, 189, 248, 0.3)'; // Sky blue
+        cloudOpacity = Math.min(0.8, params.pressure * 0.4);
+        waterOpacity = params.water / 100;
+        
+        // Life logic only for Terran
+        if (stats.score > 60) {
+           greeneryOpacity = timeProgress * 0.9; 
+        }
+        break;
+    }
+
+    return { 
+      archetype,
+      baseGradient, 
+      textureType, 
+      waterOpacity, 
+      greeneryOpacity, 
+      cloudOpacity, 
+      atmosphereColor,
+      animationClass
+    };
+  }, [params, timeframe, stats.score]);
+
+  return (
+    <div className="fixed inset-0 bg-slate-950 overflow-hidden font-sans">
+      <StarField density="high" />
+      
+      {/* Top Bar - Floating Glass */}
+      <div className="absolute top-0 left-0 right-0 z-50 p-6 flex justify-between items-start pointer-events-none">
+        <div className="pointer-events-auto flex items-center gap-4 glass-panel rounded-full px-4 py-2">
+          <button onClick={onExit} className="p-2 rounded-full hover:bg-white/10 transition-colors text-slate-300 hover:text-white">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="h-6 w-px bg-white/10"></div>
+          <div>
+             <h2 className="text-white font-bold tracking-tight text-sm">Simulation Lab <span className="text-teal-400">/// Live Kernel</span></h2>
+             <div className="flex items-center gap-2 text-xs text-slate-400">
+               <span>{planetName}</span>
+               <span className="px-1.5 rounded bg-white/5 border border-white/10">{planetType}</span>
+             </div>
+          </div>
+        </div>
+
+        <div className="pointer-events-auto flex gap-3 relative">
+          <button 
+             onClick={() => setControlsVisible(!controlsVisible)}
+             className="glass-panel p-3 rounded-full text-slate-300 hover:text-white hover:bg-white/10 transition-all"
+          >
+            {controlsVisible ? <Minimize2 className="w-5 h-5"/> : <Maximize2 className="w-5 h-5"/>}
+          </button>
+          
+          {/* Planet Dropdown Menu */}
+          <div className="relative">
+             <button 
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                disabled={loading}
+                className="glass-panel px-6 py-3 rounded-full text-white font-bold text-sm flex items-center gap-2 hover:bg-teal-500/20 hover:border-teal-500/50 transition-all shadow-lg hover:shadow-teal-500/20"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                {loading ? 'Scanning...' : 'Select Target'}
+                <ChevronDown className="w-4 h-4 ml-1 opacity-70" />
+              </button>
+
+              {isDropdownOpen && (
+                <div className="absolute top-full right-0 mt-3 w-72 glass-panel rounded-2xl overflow-hidden shadow-2xl z-50 flex flex-col animate-fade-in-up border border-white/10 bg-[#0f172a]/95 backdrop-blur-xl">
+                  <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                     {candidates.map((planet) => (
+                        <button
+                          key={planet.name}
+                          onClick={() => selectPlanet(planet)}
+                          className="w-full text-left px-5 py-3 hover:bg-white/10 text-slate-300 hover:text-white transition-colors border-b border-white/5 last:border-0 flex justify-between items-center group"
+                        >
+                           <span className="font-medium group-hover:text-teal-300 transition-colors">{planet.name}</span>
+                           <span className={`text-[10px] border border-white/10 px-2 py-0.5 rounded text-slate-500 group-hover:text-slate-300 uppercase tracking-wider
+                             ${planet.style === 'lava' ? 'bg-red-900/30 text-red-400' : 
+                               planet.style === 'ice' ? 'bg-blue-900/30 text-blue-300' :
+                               planet.style === 'gas' ? 'bg-purple-900/30 text-purple-300' : 'bg-white/5'}
+                           `}>
+                             {planet.style}
+                           </span>
+                        </button>
+                     ))}
+                  </div>
+                   <button
+                      onClick={generateRandomPlanet}
+                      className="w-full text-left px-5 py-4 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 hover:text-teal-300 transition-colors font-bold border-t border-white/10 flex items-center gap-2 justify-center"
+                   >
+                      <RefreshCw className="w-4 h-4" /> Random Candidate
+                   </button>
+                </div>
+              )}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Fullscreen Visualizer Area */}
+      <div className="absolute inset-0 flex items-center justify-center z-0 perspective-[1000px]">
+        {/* The Planet Model */}
+        <div 
+            className="relative w-[40vh] h-[40vh] md:w-[65vh] md:h-[65vh] rounded-full shadow-[0_0_150px_rgba(0,0,0,0.8)] transition-all duration-[2000ms] ease-out transform hover:scale-105"
+            style={{ 
+                transformStyle: 'preserve-3d',
+            }}
+        >
+              {/* 1. Base Layer (Geology/Core) */}
+              <div 
+                className={`absolute inset-0 rounded-full bg-gradient-to-br ${visuals.baseGradient} ${visuals.animationClass}`}
+                style={{
+                  backgroundSize: '200% 100%',
+                  boxShadow: 'inset -80px -40px 120px rgba(0,0,0,0.95), inset 20px 10px 40px rgba(255,255,255,0.1)',
+                  
+                  // --- Complex Texture Generation based on Archetype ---
+                  backgroundImage: 
+                    visuals.textureType === 'gaseous' 
+                      ? `repeating-linear-gradient(15deg, transparent, transparent 10px, rgba(0,0,0,0.2) 10px, rgba(0,0,0,0.2) 40px),
+                         radial-gradient(circle at 30% 40%, rgba(255,255,255,0.1) 0%, transparent 20%)`
+                    : visuals.textureType === 'molten'
+                      ? `repeating-conic-gradient(#000 0% 5%, transparent 10% 15%), 
+                         radial-gradient(circle at 60% 60%, #ff4500 0%, transparent 50%),
+                         linear-gradient(to right, #3f0e0e, #1a0505)`
+                    : visuals.textureType === 'icy'
+                      ? `repeating-linear-gradient(45deg, rgba(255,255,255,0.1) 0px, transparent 2px, transparent 10px),
+                         radial-gradient(circle at 50% 30%, rgba(255,255,255,0.8) 0%, transparent 60%)`
+                    : visuals.textureType === 'rocky'
+                      ? `repeating-radial-gradient(circle at 20% 80%, rgba(0,0,0,0.2) 0%, transparent 10%),
+                         repeating-linear-gradient(0deg, rgba(0,0,0,0.1) 0px, transparent 5px, transparent 20px)`
+                    : `radial-gradient(circle at 50% 50%, rgba(255,255,255,0.05) 0%, transparent 20%), 
+                       repeating-conic-gradient(#0004 0% 15%, transparent 0% 30%)` // Default Terran Rock
+                }}
+              ></div>
+
+              {/* 2. Water Layer (Terran/Ocean only) */}
+              {(visuals.archetype === 'terran' || visuals.archetype === 'frozen') && (
+                <>
+                  <div 
+                    className="absolute inset-0 rounded-full animate-planet-rotate transition-opacity duration-[1500ms]"
+                    style={{
+                      opacity: visuals.waterOpacity,
+                      background: 'repeating-radial-gradient(circle at 20% 80%, #1e40af 0%, #172554 10%, transparent 20%)',
+                      backgroundSize: '300% 100%',
+                      mixBlendMode: 'hard-light'
+                    }}
+                  ></div>
+                  <div 
+                     className="absolute inset-0 rounded-full animate-planet-rotate transition-opacity duration-[1500ms]"
+                     style={{
+                       opacity: visuals.waterOpacity * 0.8,
+                       background: 'linear-gradient(to right, transparent, #3b82f6, transparent)',
+                       backgroundSize: '200% 100%',
+                       mixBlendMode: 'color'
+                     }}
+                  ></div>
+                </>
+              )}
+
+              {/* 3. Life Layer (Terran only) */}
+              <div 
+                className="absolute inset-0 rounded-full animate-planet-rotate transition-opacity duration-[2000ms]"
+                style={{
+                  opacity: visuals.greeneryOpacity,
+                  backgroundImage: 'radial-gradient(circle at 70% 30%, #22c55e 0%, transparent 40%), radial-gradient(circle at 30% 70%, #15803d 0%, transparent 30%)',
+                  backgroundSize: '200% 100%',
+                  mixBlendMode: 'overlay'
+                }}
+              ></div>
+
+              {/* 4. Clouds / Atmosphere */}
+              <div 
+                className="absolute inset-0 rounded-full animate-cloud-rotate"
+                style={{
+                  opacity: visuals.cloudOpacity,
+                  backgroundImage: visuals.archetype === 'volcanic' 
+                    ? 'radial-gradient(circle at 50% 50%, transparent 40%, rgba(50,50,50,0.9) 100%)' // Dark ash
+                    : 'radial-gradient(circle at 50% 50%, transparent 40%, rgba(255,255,255,0.9) 100%), linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.5) 100%)',
+                  backgroundSize: '220% 100%',
+                  filter: 'blur(1px)',
+                  mixBlendMode: visuals.archetype === 'volcanic' ? 'multiply' : 'normal'
+                }}
+              ></div>
+
+              {/* 5. Atmospheric Glow/Halo */}
+              <div 
+                className="absolute -inset-1 md:-inset-2 rounded-full -z-10 transition-all duration-[2000ms]"
+                style={{
+                  background: `radial-gradient(circle at 30% 30%, ${visuals.atmosphereColor}, transparent 60%)`,
+                  filter: 'blur(20px)',
+                  opacity: 0.8
+                }}
+              ></div>
+              
+              {/* 6. Rim Light */}
+              <div className="absolute inset-0 rounded-full shadow-[inset_10px_10px_40px_rgba(255,255,255,0.1)] pointer-events-none"></div>
+        </div>
+      </div>
+
+      {/* Floating Controls Sidebar - Left */}
+      <div 
+        className={`absolute top-24 left-6 w-80 glass-panel rounded-2xl p-6 transition-all duration-500 z-10 ${controlsVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10 pointer-events-none'}`}
+      >
+        <h3 className="text-xs font-bold text-teal-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+          <Settings className="w-4 h-4" /> Parameters
+        </h3>
+        
+        <div className="space-y-6">
+            {/* Atm Pressure */}
+            <div className="space-y-2 group">
+              <div className="flex justify-between text-xs font-medium text-slate-400 group-hover:text-white transition-colors">
+                <span className="flex items-center gap-2"><Wind className="w-3 h-3"/> Atmosphere</span>
+                <span className="font-mono text-teal-300">{params.pressure} atm</span>
+              </div>
+              <input 
+                type="range" min="0" max="10" step="0.1" 
+                value={params.pressure}
+                onChange={(e) => setParams({...params, pressure: parseFloat(e.target.value)})}
+                className="w-full h-1.5 bg-slate-700/50 rounded-lg appearance-none cursor-pointer accent-teal-400 hover:accent-teal-300"
+              />
+            </div>
+
+            {/* Temperature */}
+            <div className="space-y-2 group">
+              <div className="flex justify-between text-xs font-medium text-slate-400 group-hover:text-white transition-colors">
+                <span className="flex items-center gap-2"><Thermometer className="w-3 h-3"/> Surface Temp</span>
+                <span className="font-mono text-red-300">{params.temperature}°C</span>
+              </div>
+              <input 
+                type="range" min="-100" max="500" step="1" 
+                value={params.temperature}
+                onChange={(e) => setParams({...params, temperature: parseInt(e.target.value)})}
+                className="w-full h-1.5 bg-slate-700/50 rounded-lg appearance-none cursor-pointer accent-red-400 hover:accent-red-300"
+              />
+            </div>
+
+            {/* Gravity */}
+            <div className="space-y-2 group">
+              <div className="flex justify-between text-xs font-medium text-slate-400 group-hover:text-white transition-colors">
+                <span className="flex items-center gap-2"><Activity className="w-3 h-3"/> Gravity</span>
+                <span className="font-mono text-purple-300">{params.gravity} g</span>
+              </div>
+              <input 
+                type="range" min="0.1" max="5" step="0.1" 
+                value={params.gravity}
+                onChange={(e) => setParams({...params, gravity: parseFloat(e.target.value)})}
+                className="w-full h-1.5 bg-slate-700/50 rounded-lg appearance-none cursor-pointer accent-purple-400 hover:accent-purple-300"
+              />
+            </div>
+
+            {/* Water */}
+            <div className="space-y-2 group">
+              <div className="flex justify-between text-xs font-medium text-slate-400 group-hover:text-white transition-colors">
+                <span className="flex items-center gap-2"><Droplets className="w-3 h-3"/> Hydrosphere</span>
+                <span className="font-mono text-blue-300">{params.water}%</span>
+              </div>
+              <input 
+                type="range" min="0" max="100" step="1" 
+                value={params.water}
+                onChange={(e) => setParams({...params, water: parseInt(e.target.value)})}
+                className="w-full h-1.5 bg-slate-700/50 rounded-lg appearance-none cursor-pointer accent-blue-400 hover:accent-blue-300"
+              />
+            </div>
+
+            {/* Timeline Slider */}
+            <div className="pt-6 mt-2 border-t border-white/10">
+              <div className="flex justify-between text-xs mb-3">
+                <span className="text-amber-400 font-bold flex items-center gap-2">
+                  <Clock className="w-3 h-3"/> Projection
+                </span>
+                <span className="text-white font-mono bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded text-[10px]">
+                  T+{timeframe.toLocaleString()} Yrs
+                </span>
+              </div>
+              <input 
+                type="range" min="10" max="10000" step="10" 
+                value={timeframe}
+                onChange={(e) => setTimeframe(parseInt(e.target.value))}
+                className="w-full h-2 bg-slate-700/50 rounded-lg appearance-none cursor-pointer accent-amber-500 hover:accent-amber-400"
+              />
+              <p className="text-[10px] text-slate-500 mt-2 leading-tight">
+                Simulates biological evolution and terraforming latency based on current parameters.
+              </p>
+            </div>
+        </div>
+      </div>
+
+      {/* Floating HUD - Right */}
+      <div 
+        className={`absolute top-24 right-6 w-64 glass-panel rounded-2xl p-6 transition-all duration-500 z-10 ${controlsVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10 pointer-events-none'}`}
+      >
+          <div className="text-[10px] text-slate-400 uppercase tracking-widest mb-2">Habitability Index</div>
+          <div className="flex items-end gap-2 mb-1">
+             <div className={`text-5xl font-black ${stats.color} leading-none tracking-tighter`}>{stats.score}</div>
+             <div className="text-lg text-slate-500 font-medium mb-1">/100</div>
+          </div>
+          <div className={`text-sm font-bold ${stats.color} mb-6 pb-6 border-b border-white/10`}>{stats.status}</div>
+          
+          <div className="space-y-4">
+               <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">Class</span>
+                  <span className="text-white font-medium text-right capitalize">{visuals.archetype}</span>
+               </div>
+               <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">Biosphere</span>
+                  <span className={`font-bold text-right ${visuals.greeneryOpacity > 0.2 ? 'text-green-400' : 'text-slate-600'}`}>
+                      {visuals.greeneryOpacity > 0.6 ? 'Abundant' : visuals.greeneryOpacity > 0.1 ? 'Sparse' : 'Sterile'}
+                  </span>
+               </div>
+               <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400">Flux</span>
+                  <span className="text-white font-medium text-right">{(1 / (params.starDistance * params.starDistance)).toFixed(2)}x Earth</span>
+               </div>
+          </div>
+      </div>
+
+      {/* Bottom Floating Stats Bar */}
+      <div className={`absolute bottom-8 left-1/2 -translate-x-1/2 w-full max-w-4xl px-6 transition-all duration-500 z-10 ${controlsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
+        <div className="glass-panel rounded-2xl p-4 grid grid-cols-4 gap-4 divide-x divide-white/10">
+            <div className="px-4 text-center">
+                <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Pop. Capacity</div>
+                <div className="text-white font-mono text-lg font-bold">
+                    {stats.score > 70 ? `${(timeframe * 0.5).toFixed(0)}M` : '0'}
+                </div>
+            </div>
+            <div className="px-4 text-center">
+                <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Terraform Cost</div>
+                <div className="text-white font-mono text-lg font-bold">
+                    ${(100 - stats.score) * 1.5}T
+                </div>
+            </div>
+             <div className="px-4 text-center">
+                <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">Transit Time</div>
+                <div className="text-white font-mono text-lg font-bold">
+                    {(params.starDistance * 4.2).toFixed(1)} LY
+                </div>
+            </div>
+            <div className="px-4 text-center flex items-center justify-center">
+                 <a href="https://exoplanetarchive.ipac.caltech.edu/" target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs text-teal-400 hover:text-white transition-colors font-bold">
+                    <ExternalLink className="w-3 h-3" /> Full Report
+                 </a>
+            </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- Main App Component ---
+
+export default function App() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSimulating, setIsSimulating] = useState(false);
+
+  const scrollTo = (id) => {
+    if (isSimulating) {
+      setIsSimulating(false);
+      setTimeout(() => {
+        const element = document.getElementById(id);
+        if (element) element.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } else {
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+    setIsMenuOpen(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-teal-500/30">
+      
+      {/* Conditionally render Navbar only if not simulating, or use a simplified one */}
+      {!isSimulating && (
+        <nav className="fixed top-0 w-full z-50 bg-slate-950/80 backdrop-blur-md border-b border-slate-800">
+          <div className="container mx-auto px-6 h-20 flex items-center justify-between">
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => scrollTo('home')}>
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-teal-400 to-blue-600 flex items-center justify-center">
+                <Globe className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-2xl font-bold tracking-tighter text-white">EXOVITA</span>
+            </div>
+
+            <div className="hidden md:flex gap-8 text-sm font-medium">
+              {['Problem', 'Vision', 'Use Cases'].map((item) => (
+                <button 
+                  key={item}
+                  onClick={() => scrollTo(item.toLowerCase().replace(' ', '-'))}
+                  className="text-slate-400 hover:text-teal-400 transition-colors uppercase tracking-widest text-xs"
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+
+            <div className="hidden md:block">
+              <button 
+                onClick={() => setIsSimulating(true)}
+                className="bg-teal-500 hover:bg-teal-400 text-slate-900 px-6 py-2 rounded-full font-bold transition-all transform hover:scale-105 shadow-lg shadow-teal-500/20"
+              >
+                Launch App
+              </button>
+            </div>
+
+            <button className="md:hidden text-slate-300" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+              {isMenuOpen ? <X /> : <Menu />}
+            </button>
+          </div>
+
+          {/* Mobile Menu */}
+          {isMenuOpen && (
+            <div className="md:hidden bg-slate-900 border-b border-slate-800 absolute w-full p-4 flex flex-col gap-4 shadow-2xl">
+              {['Problem', 'Vision', 'Use Cases'].map((item) => (
+                <button 
+                  key={item}
+                  onClick={() => scrollTo(item.toLowerCase().replace(' ', '-'))}
+                  className="text-left text-slate-300 hover:text-teal-400 py-2"
+                >
+                  {item}
+                </button>
+              ))}
+               <button 
+                onClick={() => { setIsSimulating(true); setIsMenuOpen(false); }}
+                className="bg-teal-500 text-slate-900 px-6 py-3 rounded-lg font-bold w-full"
+               >
+                Launch App
+              </button>
+            </div>
+          )}
+        </nav>
+      )}
+
+      {isSimulating ? (
+        <SimulationDashboard onExit={() => setIsSimulating(false)} />
+      ) : (
+        <>
+          {/* Hero Section */}
+          <header id="home" className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden">
+            <StarField />
+            
+            <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-teal-900/20 to-transparent pointer-events-none"></div>
+            <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-slate-950 to-transparent pointer-events-none"></div>
+
+            <div className="container mx-auto px-6 relative z-10">
+              <div className="max-w-4xl mx-auto text-center">
+                <div className="inline-block mb-6 px-4 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 text-sm font-medium animate-fade-in-up">
+                  v1.0 Public Beta Live
+                </div>
+                <h1 className="text-5xl md:text-8xl font-black text-white mb-6 leading-tight tracking-tight">
+                  Simulating <br />
+                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-teal-400 via-blue-400 to-purple-400">
+                    New Worlds
+                  </span>
+                </h1>
+                <p className="text-xl md:text-2xl text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
+                  AI-Powered Planetary Modeling & Seeding Strategy Platform. 
+                  Visualize and analyze exoplanet habitability in the browser.
+                </p>
+                <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
+                  <button 
+                    onClick={() => setIsSimulating(true)}
+                    className="w-full md:w-auto bg-teal-500 hover:bg-teal-400 text-slate-900 px-8 py-4 rounded-full font-bold text-lg transition-all shadow-[0_0_20px_rgba(45,212,191,0.3)] hover:shadow-[0_0_30px_rgba(45,212,191,0.5)] flex items-center justify-center gap-2"
+                  >
+                    <Rocket className="w-5 h-5" /> Start Simulation
+                  </button>
+                  <button className="w-full md:w-auto bg-slate-800 hover:bg-slate-700 text-white px-8 py-4 rounded-full font-bold text-lg border border-slate-700 transition-all">
+                    View Demo
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="container mx-auto px-6 mt-20">
+              <div className="grid grid-cols-1 md:grid-cols-3 bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
+                <StatCard value="5,700+" label="Exoplanets" sublabel="NASA & ESA Data" />
+                <StatCard value="12" label="Modules" sublabel="Physics & Biology" />
+                <StatCard value="$0" label="Cost" sublabel="Open Source" />
+              </div>
+            </div>
+          </header>
+
+          {/* The Problem */}
+          <section id="problem" className="py-24 bg-slate-950 relative">
+            <div className="container mx-auto px-6">
+              <SectionHeading subtitle="Why current tools fail us">THE PROBLEM</SectionHeading>
+              
+              <div className="grid md:grid-cols-3 gap-8">
+                <Card 
+                  icon={Database}
+                  title="Fragmented Data" 
+                  description="Exoplanet data is scattered across NASA, ESA, and academic databases with no unified platform for habitability assessment."
+                />
+                <Card 
+                  icon={Layers}
+                  title="Siloed Disciplines" 
+                  description="Atmosphere, geology, and biology are treated as separate fields. No integrated simulation engine exists for the web."
+                />
+                <Card 
+                  icon={Activity}
+                  title="Inaccessible Science" 
+                  description="Current tools require deep astrophysics expertise. Decision makers have no way to evaluate colonization viability effectively."
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* The Vision */}
+          <section id="vision" className="py-24 bg-gradient-to-b from-slate-950 to-slate-900">
+            <div className="container mx-auto px-6">
+              <div className="flex flex-col lg:flex-row items-center gap-16">
+                <div className="lg:w-1/2">
+                   <SectionHeading centered={false} subtitle="A Digital Twin for Every Exoplanet">
+                    OUR VISION
+                   </SectionHeading>
+                   <p className="text-slate-300 text-lg mb-8 leading-relaxed">
+                     ExoVita creates interactive digital twins of exoplanets — combining real NASA data, multi-physics simulation, and AI evaluation into one visually stunning platform.
+                   </p>
+                   
+                   <div className="space-y-6">
+                     {[
+                       { icon: Database, title: "Real Data Ingestion", desc: "5,700+ confirmed exoplanets from NASA & EU archives" },
+                       { icon: Globe, title: "Multi-Physics Engine", desc: "Atmosphere, terrain, gravity, hydrology in Rust WASM" },
+                       { icon: Brain, title: "AI-Driven Analysis", desc: "Claude Sonnet strategy + Monte Carlo probability" },
+                       { icon: Monitor, title: "3D Visualization", desc: "Procedural planet rendering with live dashboards" }
+                     ].map((item, i) => (
+                       <div key={i} className="flex gap-4 p-4 rounded-xl hover:bg-slate-800/50 transition-colors border border-transparent hover:border-slate-800">
+                         <div className="mt-1">
+                           <item.icon className="w-6 h-6 text-teal-400" />
+                         </div>
+                         <div>
+                           <h4 className="text-white font-bold">{item.title}</h4>
+                           <p className="text-slate-400 text-sm">{item.desc}</p>
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                </div>
+                
+                <div className="lg:w-1/2 relative">
+                  <div className="relative w-full aspect-square max-w-md mx-auto">
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-teal-500 to-blue-600 opacity-20 blur-3xl animate-pulse"></div>
+                    <div className="absolute inset-4 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center overflow-hidden shadow-2xl">
+                      <div className="absolute w-full h-full border border-teal-500/20 rounded-full opacity-50"></div>
+                      <div className="absolute w-[120%] h-[120%] border-t border-teal-500/20 rounded-full top-10 transform rotate-12"></div>
+                      <div className="absolute w-[120%] h-[120%] border-t border-teal-500/20 rounded-full bottom-10 transform -rotate-12"></div>
+                      <Globe className="w-48 h-48 text-teal-500 opacity-80 animate-spin-slow" strokeWidth={0.5} />
+                    </div>
+                    
+                    <div className="absolute -top-4 -right-4 bg-slate-800 p-3 rounded-lg border border-slate-700 shadow-xl">
+                       <div className="text-xs text-slate-400">Habitability Score</div>
+                       <div className="text-xl font-bold text-teal-400">94.2%</div>
+                    </div>
+                    <div className="absolute -bottom-4 -left-4 bg-slate-800 p-3 rounded-lg border border-slate-700 shadow-xl">
+                       <div className="text-xs text-slate-400">Surface Temp</div>
+                       <div className="text-xl font-bold text-blue-400">22°C</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* How It Works */}
+          <section id="how-it-works" className="py-24 bg-slate-950">
+            <div className="container mx-auto px-6">
+              <SectionHeading subtitle="Five-Stage Pipeline">HOW IT WORKS</SectionHeading>
+              
+              <div className="relative">
+                <div className="hidden md:block absolute top-14 left-0 w-full h-0.5 bg-slate-800"></div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+                  <StepCard number="01" icon={Database} title="Ingest" description="Pull real data from NASA & EU archives" />
+                  <StepCard number="02" icon={Code} title="Model" description="Build digital twin with full parameters" />
+                  <StepCard number="03" icon={Cpu} title="Simulate" description="Run atmosphere, terrain, and ecosystem sims" />
+                  <StepCard number="04" icon={Brain} title="Evaluate" description="AI scores habitability & strategy" />
+                  <StepCard number="05" icon={Globe} title="Visualize" description="3D globe & real-time dashboards" />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Use Cases */}
+          <section id="use-cases" className="py-24 bg-gradient-to-t from-slate-900 to-slate-950">
+            <div className="container mx-auto px-6">
+              <SectionHeading subtitle="Who Benefits & How">USE CASES</SectionHeading>
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[
+                  { 
+                    icon: Rocket, 
+                    title: "Space Agencies", 
+                    sub: "NASA · ESA · JAXA",
+                    desc: "Prioritize mission targets by running habitability simulations across thousands of candidates." 
+                  },
+                  { 
+                    icon: Layers, 
+                    title: "Research Teams", 
+                    sub: "Universities · Labs",
+                    desc: "Replace months of fragmented analysis with unified multi-physics models. Publish findings faster." 
+                  },
+                  { 
+                    icon: Globe, 
+                    title: "Educators", 
+                    sub: "Museums · Schools",
+                    desc: "Make exoplanet science tangible. Students explore real planets in 3D and tweak parameters." 
+                  },
+                  { 
+                    icon: BarChart3, 
+                    title: "Policy & Strategy", 
+                    sub: "Gov · Think Tanks",
+                    desc: "Evaluate long-term colonization viability with data-driven scenario analysis." 
+                  }
+                ].map((uc, i) => (
+                  <div key={i} className="bg-slate-900 p-6 rounded-2xl border border-slate-800 hover:-translate-y-2 transition-transform duration-300">
+                    <uc.icon className="w-10 h-10 text-teal-400 mb-4" />
+                    <h3 className="text-lg font-bold text-white">{uc.title}</h3>
+                    <div className="text-teal-500 text-xs font-bold uppercase mb-3">{uc.sub}</div>
+                    <p className="text-slate-400 text-sm leading-relaxed">{uc.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Comparison */}
+          <section id="comparison" className="py-24 bg-slate-900">
+            <div className="container mx-auto px-6">
+              <SectionHeading subtitle="What sets us apart">WHY EXOVITA</SectionHeading>
+              
+              <div className="max-w-4xl mx-auto bg-slate-950 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl">
+                <div className="grid grid-cols-3 gap-4 p-6 bg-slate-900/50 border-b border-slate-800 font-bold text-white">
+                  <div>Feature</div>
+                  <div className="text-center text-teal-400">ExoVita</div>
+                  <div className="text-center text-slate-500">Traditional Tools</div>
+                </div>
+                <div className="p-6">
+                  <ComparisonRow feature="12 Integrated Modules" exo={true} trad={false} />
+                  <ComparisonRow feature="AI-Powered Analysis" exo={true} trad={false} />
+                  <ComparisonRow feature="Rust WASM Performance" exo={true} trad={false} />
+                  <ComparisonRow feature="Automated Data Pipelines" exo={true} trad={false} />
+                  <ComparisonRow feature="Interactive 3D Globe" exo={true} trad={false} />
+                  <ComparisonRow feature="100% Free & Open Source" exo={true} trad={false} />
+                </div>
+              </div>
+            </div>
+          </section>
+        </>
+      )}
+
+      {/* Footer */}
+      <footer className="py-12 bg-slate-950 border-t border-slate-900">
+        <div className="container mx-auto px-6 text-center">
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-teal-400 to-blue-600 flex items-center justify-center">
+              <Globe className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-2xl font-bold text-white">EXOVITA</span>
+          </div>
+          <p className="text-slate-500 mb-8 max-w-lg mx-auto">
+            Simulating the future of interstellar colonization. 
+            <br />All tools free. Zero licensing. 100% open-source.
+          </p>
+          <div className="flex justify-center gap-6 text-slate-400">
+            <a href="#" className="hover:text-teal-400 transition-colors">GitHub</a>
+            <a href="#" className="hover:text-teal-400 transition-colors">Documentation</a>
+            <a href="#" className="hover:text-teal-400 transition-colors">Contact</a>
+          </div>
+          <div className="mt-12 text-slate-600 text-sm">
+            © 2024 ExoVita Project. All rights reserved.
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
