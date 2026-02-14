@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌌 Exoplanet Analysis System</title>
+    <script src="embedded_data.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1d3a 50%, #0a0e27 100%);
+            color: #e0e6f0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.6;
+            z-index: 0;
+        }
+        
+        .star {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+        
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px 20px;
+            background: rgba(26, 29, 58, 0.8);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            color: #a0aec0;
+            font-size: 1.1em;
+        }
+        
+        .status-bar {
+            background: rgba(26, 29, 58, 0.6);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 10px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .status-item {
+            text-align: center;
+        }
+        
+        .status-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .status-label {
+            font-size: 0.9em;
+            color: #a0aec0;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr 350px;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 1400px) {
+            .main-grid {
+                grid-template-columns: 300px 1fr;
+            }
+            .analysis-panel {
+                grid-column: 1 / -1;
+            }
+        }
+        
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: rgba(26, 29, 58, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .panel h2 {
+            margin-bottom: 15px;
+            color: #667eea;
+            font-size: 1.3em;
+        }
+        
+        .search-wrapper {
+            position: relative;
+            margin-bottom: 15px;
+        }
+        
+        .search-box {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 8px;
+            background: rgba(10, 14, 39, 0.5);
+            color: #e0e6f0;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        
+        .search-box:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(26, 29, 58, 0.98);
+            border: 2px solid rgba(102, 126, 234, 0.5);
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        
+        .autocomplete-dropdown.show {
+            display: block;
+        }
+        
+        .autocomplete-item {
+            padding: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+            transition: background 0.2s;
+        }
+        
+        .autocomplete-item:hover {
+            background: rgba(102, 126, 234, 0.3);
+        }
+        
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+        
+        .autocomplete-planet-name {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 3px;
+        }
+        
+        .autocomplete-info {
+            font-size: 0.85em;
+            color: #a0aec0;
+        }
+        
+        .filter-group {
+            margin-bottom: 15px;
+        }
+        
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #a0aec0;
+            font-size: 0.9em;
+        }
+        
+        .filter-group select, .filter-group input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            border-radius: 6px;
+            background: rgba(10, 14, 39, 0.5);
+            color: #e0e6f0;
+        }
+        
+        .button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .button:active {
+            transform: translateY(0);
+        }
+        
+        .planet-list {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        
+        .planet-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            background: rgba(10, 14, 39, 0.5);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        
+        .planet-item:hover {
+            background: rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+        
+        .planet-item.selected {
+            background: rgba(102, 126, 234, 0.3);
+            border-color: #667eea;
+        }
+        
+        .planet-name {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .planet-info {
+            font-size: 0.85em;
+            color: #a0aec0;
+        }
+        
+        /* Planet Simulation */
+        .simulation-container {
+            background: rgba(10, 14, 39, 0.5);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            min-height: 350px;
+        }
+        
+        .simulation-title {
+            text-align: center;
+            color: #667eea;
+            font-size: 1.1em;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        #planetCanvas {
+            width: 100%;
+            height: 300px;
+            border-radius: 8px;
+        }
+        
+        .sim-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .sim-button {
+            padding: 8px 16px;
+            border: 1px solid rgba(102, 126, 234, 0.5);
+            border-radius: 20px;
+            background: rgba(10, 14, 39, 0.5);
+            color: #667eea;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+        
+        .sim-button:hover {
+            background: rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+        
+        .sim-button.active {
+            background: rgba(102, 126, 234, 0.3);
+            border-color: #667eea;
+        }
+        
+        /* Detail Cards */
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .detail-card {
+            background: rgba(10, 14, 39, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+        
+        .detail-card h3 {
+            color: #667eea;
+            font-size: 1.1em;
+            margin-bottom: 12px;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            color: #a0aec0;
+            font-size: 0.9em;
+        }
+        
+        .detail-value {
+            color: #e0e6f0;
+            font-weight: 600;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+            color: #a0aec0;
+        }
+        
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+        
+        /* Analysis Panel */
+        .analysis-panel {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .analysis-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .analysis-btn {
+            padding: 12px;
+            border: 2px solid rgba(102, 126, 234, 0.5);
+            border-radius: 8px;
+            background: rgba(10, 14, 39, 0.5);
+            color: #e0e6f0;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-align: center;
+        }
+        
+        .analysis-btn:hover {
+            background: rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+        
+        .analysis-result {
+            background: rgba(10, 14, 39, 0.5);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .analysis-result h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        .analysis-section {
+            margin-bottom: 20px;
+        }
+        
+        .analysis-section h4 {
+            color: #a0aec0;
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+        
+        .analysis-item {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+        }
+        
+        .analysis-item:last-child {
+            border-bottom: none;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin: 5px 5px 5px 0;
+        }
+        
+        .badge-success {
+            background: rgba(52, 211, 153, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(52, 211, 153, 0.5);
+        }
+        
+        .badge-warning {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.5);
+        }
+        
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.5);
+        }
+        
+        .badge-info {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+            border: 1px solid rgba(59, 130, 246, 0.5);
+        }
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(10, 14, 39, 0.5);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(102, 126, 234, 0.5);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(102, 126, 234, 0.7);
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="starsContainer"></div>
+    
+    <div class="container">
+        <header>
+            <h1>🌌 Exoplanet Analysis System</h1>
+            <p class="subtitle">Scientific Analysis of 4,575 Known Exoplanets • 100% Offline</p>
+        </header>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-value" id="totalPlanets">0</div>
+                <div class="status-label">Total Exoplanets</div>
+            </div>
+            <div class="status-item">
+                <div class="status-value" id="filteredPlanets">0</div>
+                <div class="status-label">Filtered Results</div>
+            </div>
+            <div class="status-item">
+                <div class="status-value" id="selectedPlanet">None</div>
+                <div class="status-label">Selected Planet</div>
+            </div>
+            <div class="status-item">
+                <div class="status-value" id="classification">-</div>
+                <div class="status-label">Classification</div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <!-- Left Panel: Search & Filter -->
+            <div class="panel">
+                <h2>🔍 Search & Filter</h2>
+                
+                <div class="search-wrapper">
+                    <input type="text" class="search-box" id="searchBox" placeholder="Type planet name..." autocomplete="off">
+                    <div class="autocomplete-dropdown" id="autocompleteDropdown"></div>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Discovery Method</label>
+                    <select id="methodFilter">
+                        <option value="">All Methods</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label>Discovery Year Range</label>
+                    <input type="number" id="yearMin" placeholder="Min Year" min="1990" max="2025">
+                    <input type="number" id="yearMax" placeholder="Max Year" min="1990" max="2025" style="margin-top: 5px;">
+                </div>
+
+                <div class="filter-group">
+                    <label>Distance (light-years)</label>
+                    <input type="number" id="distanceMax" placeholder="Max Distance" min="0" step="10">
+                </div>
+
+                <div class="filter-group">
+                    <label>Mass Range (Earth masses)</label>
+                    <input type="number" id="massMin" placeholder="Min Mass" min="0" step="0.1">
+                    <input type="number" id="massMax" placeholder="Max Mass" min="0" step="0.1" style="margin-top: 5px;">
+                </div>
+
+                <button class="button" onclick="applyFilters()">Apply Filters</button>
+                <button class="button" onclick="resetFilters()" style="background: rgba(239, 68, 68, 0.7);">Reset Filters</button>
+
+                <div class="planet-list" id="planetList"></div>
+            </div>
+
+            <!-- Center Panel: Planet Overview -->
+            <div class="panel" style="min-height: 700px;">
+                <h2>🌍 Planet Overview</h2>
+                <div id="planetDetails">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🪐</div>
+                        <h3 style="margin-bottom: 10px;">No Planet Selected</h3>
+                        <p>Search for a planet by name or select one from the filtered list</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Smart Analysis -->
+            <div class="panel analysis-panel">
+                <h2>🔬 Smart Analysis</h2>
+                <div class="analysis-buttons">
+                    <button class="analysis-btn" onclick="analyzeHabitability()">🌍 Habitability</button>
+                    <button class="analysis-btn" onclick="classifyPlanet()">🪐 Classify</button>
+                    <button class="analysis-btn" onclick="compareToEarth()">🌎 vs Earth</button>
+                    <button class="analysis-btn" onclick="analyzeOrbit()">🛸 Orbital</button>
+                    <button class="analysis-btn" onclick="analyzeStar()">⭐ Star Info</button>
+                    <button class="analysis-btn" onclick="findSimilar()">🔎 Find Similar</button>
+                </div>
+
+                <div class="analysis-result" id="analysisResult">
+                    <div class="empty-state" style="padding: 40px 20px;">
+                        <p style="font-size: 0.95em;">Select a planet and click an analysis button above to see intelligent calculations and insights</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="exoplanet_analysis.js"></script>
+</body>
+</html>
