@@ -120,13 +120,8 @@ const ProceduralMaterial = shaderMaterial(
 
 extend({ ProceduralMaterial });
 
-// --- THE FIX ---
-// We tell TypeScript that "proceduralMaterial" exists as a valid element.
-// Using 'any' bypasses the version mismatch issues completely so you can compile.
 declare module "@react-three/fiber" {
   interface ThreeElements {
-    proceduralMaterial: any;
+    proceduralMaterial: any; // Using 'any' allows R3F to accept the custom shader without strict type errors
   }
 }
-
-export { ProceduralMaterial };
